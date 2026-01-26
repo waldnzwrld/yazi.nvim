@@ -48,8 +48,14 @@ function M.hijack_netrw(yazi_augroup)
           string.format("Set buffer %s for window %s", next_buffer, winid)
         )
       end)
-      vim.api.nvim_buf_delete(bufnr, { force = true })
-      if next_buffer ~= empty_buffer then
+
+      local nvim_buf_is_valid = vim.api.nvim_buf_is_valid(bufnr)
+      local empty_buffer_is_valid = vim.api.nvim_buf_is_valid(empty_buffer)
+      -- check to see if bufnr exists before deleting
+      if nvim_buf_is_valid then
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end
+      if next_buffer ~= empty_buffer and empty_buffer_is_valid then
         vim.api.nvim_buf_delete(empty_buffer, { force = true })
       end
       Log:debug(
@@ -79,13 +85,15 @@ function M.hijack_netrw(yazi_augroup)
     group = yazi_augroup,
   })
 
-  -- When opening neovim with "nvim ." or "nvim <directory>", the current
-  -- buffer is already open at this point. If we have already opened a
-  -- directory, display yazi instead.
-  open_yazi_in_directory(
-    vim.b.netrw_curdir or vim.fn.expand("%:p"),
-    vim.api.nvim_get_current_buf()
-  )
+  if nvim_buf_is_valid then
+    -- When opening neovim with "nvim ." or "nvim <directory>", the current
+    -- buffer is already open at this point. If we have already opened a
+    -- directory, display yazi instead.
+    open_yazi_in_directory(
+      vim.b.netrw_curdir or vim.fn.expand("%:p"),
+      vim.api.nvim_get_current_buf()
+    )
+  end
 
   M.is_setup_done = true
 end
